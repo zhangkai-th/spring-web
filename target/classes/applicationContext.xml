@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context-4.2.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/aop
+       https://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <!--加载数据库配置文件-->
+    <context:property-placeholder location="classpath:jdbc.properties"/>
+
+    <bean id="myDataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init"
+          destroy-method="close">
+<!--        <property name="url" value="jdbc:mysql://localhost:3306/testdb"></property>-->
+<!--        <property name="username" value="root"></property>-->
+<!--        <property name="password" value="root"></property>-->
+<!--        <property name="maxActive" value="20"></property>-->
+
+        <property name="url" value="${jdbc.url}"></property>
+        <property name="username" value="${jdbc.username}"></property>
+        <property name="password" value="${jdbc.passwd}"></property>
+        <property name="maxActive" value="20"></property>
+    </bean>
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="myDataSource"></property>
+        <property name="configLocation" value="classpath:mybatis.xml"></property>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+        <property name="basePackage" value="com.fan.dao"></property>  <!--多个包用逗号分割,主要变这个-->
+    </bean>
+
+
+    <!--声明service-->
+    <bean id="buyService" class="com.fan.service.impl.BuyGoodsServiceImpl">
+        <property name="goodDao" ref="goodDao"></property>
+        <property name="saleDao" ref="saleDao"></property>
+    </bean>
+
+    <!--声明事务管理器-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="myDataSource"></property>
+    </bean>
+
+<!--    <tx:annotation-driven transaction-manager="transactionManager"/>-->
+
+    <tx:advice id="myAdvice" transaction-manager="transactionManager">  <!--id为自定义-->
+        <tx:attributes>
+            <!--给不同的方法设置属性 name 为方法名，可以使用通配符*-->
+            <tx:method name="buy" propagation="REQUIRED" isolation="DEFAULT"
+                       rollback-for="java.lang.NullPointerException,com.fan.except.NotEnoughException"/>
+            <!--使用通配符-->
+            <tx:method name="add*" propagation="REQUIRES_NEW"></tx:method>
+            <!--查询方法  query select-->
+            <tx:method name="*" propagation="SUPPORTS" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+     <!--配置aop，指定哪些包中用应用类-->
+
+    <aop:config>
+        <aop:pointcut id="servicePt" expression="execution(* *..service..*.*(..))"/>
+        <!--配置增强-->
+        <aop:advisor advice-ref="myAdvice" pointcut-ref="servicePt"/>
+    </aop:config>
+
+
+
+
+</beans>
