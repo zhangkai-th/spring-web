@@ -105,6 +105,14 @@
 				</includes>
 				<filtering>false</filtering>
 			</resource>
+             <!--不加这段则默认不加载resources文件夹-->
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>**/*.properties</include>
+					<include>**/*.xml</include>
+				</includes>
+			</resource>
 		</resources>
 	</build>
 
